@@ -5,7 +5,8 @@ TagManager:
   serializedVersion: 3
   tags:
   - Ground
-  - Enemy
+  - Enemies
+  - Obstacles
   layers:
   - Default
   - TransparentFX
@@ -13,8 +14,8 @@ TagManager:
   - Ground
   - Water
   - UI
-  - 
-  - 
+  - Enmies
+  - Obstacles
   - 
   - 
   - 
