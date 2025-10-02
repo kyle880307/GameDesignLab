@@ -1,295 +1,282 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
+using UnityEngine.Events;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float speed = 15;
-    private Rigidbody2D reimuBody;
-    private SpriteRenderer reimuSprite;
-    private bool faceRightState = true;
+    [Header("Movement")]
+    public float speed = 15f;
+    public float maxSpeed = 60f;
+    private float moveInput;
+    private bool facingRight = true;
 
-    // Jump
-    public float upSpeed = 15;
-    private bool onGroundState = true;
+    [Header("Jump")]
+    public float jumpForce = 15f;
+    public float holdJumpForce = 50f;
+    private bool onGround = true;
 
-    // Movement
-    public float maxSpeed = 60;
-
-    // Dash
-    public float dashSpeed = 30f;      // how fast to dash
-    public float dashTime = 0.1f;      // how long dash lasts
-    public float dashCooldown = 1f;    // cooldown between dashes
+    [Header("Dash")]
+    public float dashSpeed = 30f;
+    public float dashTime = 0.1f;
+    public float dashCooldown = 1f;
     private bool isDashing = false;
     private float dashTimeLeft;
     private float lastDash = -10f;
 
-    public TextMeshProUGUI scoreText;
-    public GameObject enemies;
-
-    // Drop
-    public float dropSpeed = 40f;   // how fast to fall
+    [Header("Drop")]
+    public float dropSpeed = 40f;
     private bool isDropping = false;
 
-    public JumpOverGoomba jumpOverGoomba;
+    [Header("Attack")]
+    public GameObject fireballPrefab;
+    public Transform fireballSpawnPoint;
+    public float attackCooldown = 0.5f;
+    private float lastAttackTime = -10f;
 
-    public GameObject gameOverPanel;        // assign in inspector
-    public TextMeshProUGUI finalScoreText;  // assign in inspector
-
-    public Animator reimuAnimator;
-
-    public AudioClip marioDeath;
-    public float deathImpulse = 15;
-
-    // state
-    [System.NonSerialized]
-    public bool alive = true;
-    public AudioSource marioAudio;
-
-    public Transform gameCamera; // assign in inspector
-
+    [Header("References")]
+    public Rigidbody2D body;
+    public Animator animator;
+    public SpriteRenderer sprite;
     public BoxCollider2D boxCollider;
+    public AudioSource marioAudio;
+    public AudioSource marioDeath;
+    public Transform gameCamera;
 
-    public QnsBox[] qnsBoxes;
-
-    public BrickBoxCoin[] brickBoxes;
-
-
-
-    public void PlayJumpSound()
-    {
-        // play jump sound
-        Debug.Log("Jump sound called!");
-        marioAudio.PlayOneShot(marioAudio.clip);
-    }
-
-    void PlayDeathImpulse()
-    {
-        reimuBody.AddForce(Vector2.up * deathImpulse, ForceMode2D.Impulse);
-    }
-
-    void GameOverScene()
-    {
-        // stop time
-        Time.timeScale = 0.0f;
-        // set gameover scene
-        gameOverPanel.SetActive(true); // replace this with whichever way you triggered the game over screen for Checkoff 1
-    }
-
-    void Start()
-    {
-        reimuSprite = GetComponent<SpriteRenderer>();
-        Application.targetFrameRate = 60;
-        reimuBody = GetComponent<Rigidbody2D>();
-         // update animator state
-        reimuAnimator.SetBool("onGround", onGroundState);
-    }
-
-    void Update()
-    {
-        // Flip sprite
-        // Flip sprite and stop dash if moving opposite
-        if (Input.GetKeyDown("a") && faceRightState)
-        {
-            faceRightState = false;
-            reimuSprite.flipX = true;
-            Vector2 offset = boxCollider.offset;
-            offset.x = Mathf.Abs(offset.x); // ensure it's facing left
-            boxCollider.offset = offset;
-            if (isDashing || reimuBody.linearVelocity.x > 0.1f)
-            {
-                StopDash(true); // stop dash and play skid
-            }
-        }
-
-        if (Input.GetKeyDown("d") && !faceRightState)
-        {
-            faceRightState = true;
-            reimuSprite.flipX = false;
-            Vector2 offset = boxCollider.offset;
-            offset.x = -Mathf.Abs(offset.x); // ensure it's facing right
-            boxCollider.offset = offset;
-            if (isDashing || reimuBody.linearVelocity.x < -0.1f)
-            {
-                StopDash(true); // stop dash and play skid
-            }
-        }
-
-
-        // Jump
-        if (Input.GetKeyDown(KeyCode.Space) && onGroundState)
-        {
-            reimuBody.AddForce(Vector2.up * upSpeed, ForceMode2D.Impulse);
-            onGroundState = false;
-            // update animator state
-            reimuAnimator.SetBool("onGround", onGroundState);
-        }
-
-        // Dash input
-        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && Time.time >= (lastDash + dashCooldown))
-        {
-            isDashing = true;
-            dashTimeLeft = dashTime;
-            lastDash = Time.time;
-            reimuAnimator.SetBool("onDash", isDashing);
-        }
-
-        // Fast drop (only in air)
-        if (Input.GetKeyDown(KeyCode.S) && !onGroundState && !isDropping)
-        {
-            isDropping = true;
-            Debug.Log("isDropping");
-            reimuBody.linearVelocity = new Vector2(reimuBody.linearVelocity.x, -dropSpeed);
-        }
-        reimuAnimator.SetFloat("xSpeed", Mathf.Abs(reimuBody.linearVelocity.x));
-
-        // update animator with vertical velocity
-        reimuAnimator.SetFloat("ySpeed", reimuBody.linearVelocity.y);
-
-    }
-
-    void FixedUpdate()
-    {
-        if (isDashing)
-        {
-            float dashDir = faceRightState ? 1f : -1f;
-            reimuBody.linearVelocity = new Vector2(dashDir * dashSpeed, reimuBody.linearVelocity.y);
-
-            dashTimeLeft -= Time.fixedDeltaTime;
-            if (dashTimeLeft <= 0)
-            {
-                StopDash();
-            }
-            return; // skip normal movement while dashing
-        }
-
-        if (alive)
-        {
-
-            float moveHorizontal = Input.GetAxisRaw("Horizontal");
-            // other code
-            if (Mathf.Abs(moveHorizontal) > 0)
-            {
-                Vector2 movement = new Vector2(moveHorizontal, 0);
-                if (reimuBody.linearVelocity.magnitude < maxSpeed)
-                    reimuBody.AddForce(movement * speed);
-            }
-
-            // Stop movement when key released
-            if (Input.GetKeyUp("a") || Input.GetKeyUp("d"))
-            {
-                reimuBody.linearVelocity = new Vector2(0, reimuBody.linearVelocity.y);
-            }
-
-        }
-    }
-
-    int collisionLayerMask = (1 << 3) | (1 << 6) | (1 << 7);
+    [Header("Gameplay")]
+    public GameObject enemies;
 
     private int groundContacts = 0;
+    private bool alive = true;
+    private ActionManager actionManager;
+    private GameManager gameManager;
 
-    void OnCollisionEnter2D(Collision2D col)
+    [Header("Death")]
+    public float deathImpulse = 15f;
+
+    public bool IsAlive => alive;  // Expose alive status to boss
+    public Boss boss;
+
+    private void Awake()
     {
-        if ((collisionLayerMask & (1 << col.gameObject.layer)) > 0)
+        gameManager = FindObjectOfType<GameManager>();
+        actionManager = FindObjectOfType<ActionManager>();
+
+        if (actionManager != null)
         {
-            groundContacts++;
-            onGroundState = true;
-            isDropping = false;
-            Debug.Log("On ground!!!");
-            reimuAnimator.SetBool("onGround", true);
+            actionManager.jump.AddListener(OnJump);
+            actionManager.jumpHold.AddListener(OnJumpHold);
+            actionManager.moveCheck.AddListener(OnMove);
+            actionManager.attack.AddListener(OnAttack);
+            actionManager.dash.AddListener(OnDash);
+            actionManager.drop.AddListener(OnDrop);
+        }
+
+        if (!body) Debug.LogWarning("Missing Rigidbody2D.");
+        if (!animator) Debug.LogWarning("Missing Animator.");
+        if (!sprite) Debug.LogWarning("Missing SpriteRenderer.");
+        if (!boxCollider) Debug.LogWarning("Missing BoxCollider2D.");
+    }
+
+    private void Update()
+    {
+        if (!alive) return;
+        HandleDashUpdate();
+        UpdateAnimator();
+    }
+
+    private void FixedUpdate()
+    {
+        if (!alive) return;
+
+        if (isDashing)
+        {
+            HandleDashMovement();
+            return;
+        }
+
+        if (Mathf.Abs(moveInput) > 0.01f)
+        {
+            if (Mathf.Abs(body.linearVelocity.x) < maxSpeed * 0.98f)
+                body.AddForce(new Vector2(moveInput * speed, 0), ForceMode2D.Force);
+
+            body.linearVelocity = new Vector2(
+                Mathf.Clamp(body.linearVelocity.x, -maxSpeed, maxSpeed),
+                body.linearVelocity.y
+            );
+
+            if (moveInput > 0 && !facingRight) Flip(true);
+            else if (moveInput < 0 && facingRight) Flip(false);
         }
     }
 
-    void OnCollisionExit2D(Collision2D col)
+    // ================= Input Handlers =================
+    public void OnMove(float dir) => moveInput = dir;
+
+    public void OnJump()
     {
-        if ((collisionLayerMask & (1 << col.gameObject.layer)) > 0)
-        {
-            groundContacts--;
-            if (groundContacts <= 0)
-            {
-                groundContacts = 0;
-                onGroundState = false;
-                reimuAnimator.SetBool("onGround", false);
-            }
-        }
+        if (!onGround) return;
+        body.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+        SetGrounded(false);
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    public void OnJumpHold() => body.AddForce(Vector2.up * holdJumpForce, ForceMode2D.Impulse);
+
+    public void OnDash()
     {
-        if (other.gameObject.CompareTag("Enemies"))
-        {
-            Debug.Log("Collided with goomba!");
-
-            // play death animation
-            reimuAnimator.Play("ReimuHitAir");
-            marioAudio.PlayOneShot(marioDeath);
-            alive = false;
-
-            // // Display final score
-            finalScoreText.text = "Score: " + jumpOverGoomba.score.ToString();
-        }
+        if (isDashing || Time.time < lastDash + dashCooldown) return;
+        isDashing = true;
+        dashTimeLeft = dashTime;
+        lastDash = Time.time;
+        animator.SetBool("onDash", true);
     }
-    
-    private void StopDash(bool playSkid = false)
+
+    public void OnDrop()
     {
+        if (onGround || isDropping) return;
+        isDropping = true;
+        body.linearVelocity = new Vector2(body.linearVelocity.x, -dropSpeed);
+    }
+
+    public void OnAttack()
+    {
+        if (Time.time < lastAttackTime + attackCooldown) return;
+        lastAttackTime = Time.time;
+        animator.SetBool("onAttack", true);
+
+        var fireball = Instantiate(fireballPrefab, fireballSpawnPoint.position, Quaternion.identity);
+        fireball.GetComponent<Fireball>().SetDirection(facingRight);
+        fireball.GetComponent<AudioSource>().Play();
+    }
+
+    // ================= Dash =================
+    private void HandleDashUpdate()
+    {
+        if (!isDashing) return;
+        dashTimeLeft -= Time.deltaTime;
+        if (dashTimeLeft <= 0) StopDash();
+    }
+
+    private void HandleDashMovement()
+    {
+        float dashDir = facingRight ? 1f : -1f;
+        body.linearVelocity = new Vector2(dashDir * dashSpeed, body.linearVelocity.y);
+    }
+
+    private void StopDash()
+    {
+        if (!isDashing) return;
         isDashing = false;
-        reimuBody.linearVelocity = new Vector2(0, reimuBody.linearVelocity.y);
-        reimuAnimator.SetBool("onDash", false);
-        if (playSkid)
-        {
-            reimuAnimator.SetTrigger("onSkid");
-        }
+        animator.SetBool("onDash", false);
     }
+
+    // ================= Death =================
+    public void Die()
+    {
+        if (!alive) return;
+
+        alive = false;
+        StopDash();
+        body.linearVelocity = Vector2.zero;
+        animator.Play("ReimuHitAir");
+        // animator.SetBool("onDie", true);
+        marioDeath.Play();
+    }
+
+    // Called at the end of the death animation
+    public void OnDeathAnimationEnd()
+    {
+        gameManager?.GameOver();
+    }
+
+    private void PlayDeathImpulse()
+    {
+        body.AddForce(Vector2.up * deathImpulse, ForceMode2D.Impulse);
+    }
+
 
     public void RestartButtonCallback(int input)
     {
-        Debug.Log("Restart!");
-        // reset everything
+        gameManager?.GameRestart();
         ResetGame();
-        // resume time
-        Time.timeScale = 1.0f;
-
-        // hide game over panel
-        gameOverPanel.SetActive(false);
     }
 
     private void ResetGame()
     {
-        // reset position
-        reimuBody.transform.position = new Vector3(0f, -3.662f, 0.0f);
-        // reset sprite direction
-        faceRightState = true;
-        reimuSprite.flipX = false;
-        // reset score
-        scoreText.text = "Score: 0";
-        // reset Goomba
-        foreach (Transform eachChild in enemies.transform)
+        if (body) body.transform.position = new Vector3(0f, -3.662f, 0f);
+        body.linearVelocity = Vector2.zero;
+        moveInput = 0f;
+        isDropping = false;
+        // animator.SetBool("onDie", false);
+        StopDash();
+        Flip(true);
+
+        if (enemies)
         {
-            eachChild.transform.localPosition = eachChild.GetComponent<EnemyMovement>().startPosition;
+            foreach (Transform enemy in enemies.transform)
+                enemy.GetComponent<EnemyMovement>()?.ResetEnemy();
+        }
+        if (boss != null)
+        {
+            boss.ResetBoss();
         }
 
-        jumpOverGoomba.score = 0;
-        qnsBoxes = FindObjectsOfType<QnsBox>();
-        foreach (QnsBox box in qnsBoxes)
-        {
-            box.ResetBox();
-        }
-        brickBoxes = FindObjectsOfType<BrickBoxCoin>();
-        foreach (BrickBoxCoin box in brickBoxes)
-        {
-            box.ResetBox();
-        }
+        foreach (QnsBox box in FindObjectsOfType<QnsBox>()) box.ResetBox();
+        foreach (BrickBoxCoin box in FindObjectsOfType<BrickBoxCoin>()) box.ResetBox();
 
-
-        // reset animation
-        reimuAnimator.SetTrigger("gameRestart");
+        animator?.SetTrigger("gameRestart");
         alive = true;
-
-
-          // reset camera position
-        gameCamera.position = new Vector3(0, 0, -10);
-
-
+        if (gameCamera) gameCamera.position = new Vector3(0, 0, -10);
     }
+
+    // ================= Helpers =================
+    private void Flip(bool faceRight)
+    {
+        facingRight = faceRight;
+        sprite.flipX = !faceRight;
+        boxCollider.offset = new Vector2(
+            faceRight ? -Mathf.Abs(boxCollider.offset.x) : Mathf.Abs(boxCollider.offset.x),
+            boxCollider.offset.y
+        );
+    }
+
+    private void UpdateAnimator()
+    {
+        animator.SetFloat("xSpeed", Mathf.Abs(body.linearVelocity.x));
+        animator.SetFloat("ySpeed", body.linearVelocity.y);
+        animator.SetBool("onGround", onGround);
+    }
+
+    private void SetGrounded(bool grounded)
+    {
+        onGround = grounded;
+        isDropping = false;
+        animator.SetBool("onGround", grounded);
+    }
+
+    private bool IsGroundCollision(Collision2D col) =>
+        (1 << col.gameObject.layer & ((1 << 3) | (1 << 6) | (1 << 7))) != 0;
+
+    private void OnCollisionEnter2D(Collision2D col)
+    {
+        if (!IsGroundCollision(col)) return;
+        groundContacts++;
+        SetGrounded(true);
+    }
+
+    private void OnCollisionExit2D(Collision2D col)
+    {
+        if (!IsGroundCollision(col)) return;
+        groundContacts--;
+        if (groundContacts <= 0) SetGrounded(false);
+    }
+
+    private void OnTriggerEnter2D(Collider2D col)
+    {
+        if (col.CompareTag("Boss") && alive)
+        {
+            Die();
+        }
+    }
+
+    public void PlayJumpSound() => marioAudio.Play();
+    public void EndAttack() => animator.SetBool("onAttack", false);
 }

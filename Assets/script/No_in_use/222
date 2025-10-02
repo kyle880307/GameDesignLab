@@ -1,0 +1,265 @@
+// using UnityEngine;
+
+// public class QB : MonoBehaviour
+// {
+//     public GameObject coinObject;        // The coin prefab
+//     public Transform coinSpawnPoint;     // Spawn position (above box)
+//     public Sprite usedBoxSprite;         // Sprite after used
+//     public AudioClip coinSound;
+//     public float bounceForce = 5f;
+
+//     public SpringJoint2D springJoint;
+
+//     public float springEnableTime = 0.25f;
+
+//     private bool used = false;
+//     private Rigidbody2D rb;
+//     private AudioSource audioSource;
+//     private SpriteRenderer sr;
+
+//     void Start()
+//     {
+//         rb = GetComponent<Rigidbody2D>();
+//         audioSource = GetComponent<AudioSource>();
+//         sr = GetComponent<SpriteRenderer>();
+//     }
+
+//     void OnCollisionEnter2D(Collision2D collision)
+//     {
+//         if (used) return; // Already used, do nothing
+
+//         //check if player is higher than box
+//         if (collision.transform.position.y > transform.position.y)
+//         {
+//             rb.constraints = RigidbodyConstraints2D.FreezeAll;
+//             return;
+//         }
+//         else
+//         {
+//             rb.constraints = RigidbodyConstraints2D.None;
+//         }
+
+//         if (collision.gameObject.CompareTag("Player"))
+//         {
+//             // Check if player hit from BELOW
+//             // ContactPoint2D contact = collision.contacts[0];
+//             // Vector2 normal = contact.normal;
+//             // // normal.y > 0 means the player hit from below
+//             // if (normal.y > 0.5f)
+//             // {
+//             ActivateBox();
+//             // }
+//             // else
+//             // {
+//             //     return;
+//             // }
+//         }
+//     }
+
+//     void ActivateBox()
+//     {
+//         used = true;
+
+//         // Spawn coin
+//         GameObject coin = Instantiate(coinObject, coinSpawnPoint.position, Quaternion.identity);
+//         Coin coinScript = coin.GetComponent<Coin>();
+//         if (coinScript != null)
+//         {
+//             coinScript.Launch(); // Animate coin (goes up then disappears)
+//         }
+
+//         // Play sound
+//         if (coinSound != null)
+//             audioSource.PlayOneShot(coinSound);
+
+//         // Swap to used sprite (if provided)
+//         GetComponent<Animator>().enabled = false;
+//         sr = GetComponent<SpriteRenderer>();
+//         if (sr != null && usedBoxSprite != null) sr.sprite = usedBoxSprite;
+
+//         if (springJoint != null) springJoint.enabled = false;
+
+//         // stop velocity and freeze again so future collisions don't bounce it
+//         //freeze after a short delay to allow bounce to finish visually
+//         Invoke("FreezeBox", springEnableTime);
+//         rb.linearVelocity = Vector2.zero;
+//         rb.angularVelocity = 0f;
+//         rb.constraints = RigidbodyConstraints2D.FreezeAll;
+//     }
+// }
+
+using UnityEngine;
+
+public class QB : MonoBehaviour
+{
+    public GameObject coinObject;        // The coin prefab
+    public Transform coinSpawnPoint;     // Spawn position (above box)
+    public Sprite usedBoxSprite;         // Sprite after used
+    public AudioClip coinSound;
+    public float bounceForce = 5f;
+
+    public SpringJoint2D springJoint;
+
+    public float springEnableTime = 0.25f;
+
+    private bool used = false;
+    private Rigidbody2D rb;
+    private AudioSource audioSource;
+    private SpriteRenderer sr;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        audioSource = GetComponent<AudioSource>();
+        sr = GetComponent<SpriteRenderer>();
+    }
+
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (used) return; // Already used, do nothing
+
+        // Default to freezing all constraints to prevent any movement from collisions.
+        rb.constraints = RigidbodyConstraints2D.FreezeAll;
+
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            // Check if player hit from BELOW
+            ContactPoint2D contact = collision.contacts[0];
+            Vector2 normal = contact.normal;
+
+            // normal.y > 0.5f means the player hit from the bottom
+            if (normal.y > 0.5f)
+            {
+                // If the condition is met, unfreeze constraints and activate the box
+                rb.constraints = RigidbodyConstraints2D.None;
+                ActivateBox();
+            }
+        }
+    }
+
+    void ActivateBox()
+    {
+        used = true;
+
+        // Play the "used" animation or bounce animation
+        GetComponent<Animator>().SetTrigger("Bounce");
+
+        // Swap to used sprite (if provided)
+        if (sr != null && usedBoxSprite != null)
+        {
+            sr.sprite = usedBoxSprite;
+        }
+
+        // Disable the animator so it stays on the used sprite
+        GetComponent<Animator>().enabled = false;
+
+        // Spawn coin and trigger its animation
+        if (coinObject != null)
+        {
+            GameObject coin = Instantiate(coinObject, coinSpawnPoint.position, Quaternion.identity);
+            Coin coinScript = coin.GetComponent<Coin>();
+            if (coinScript != null)
+            {
+                // This launch method should trigger an animation that goes up and comes back down
+                coinScript.Launch();
+            }
+        }
+    }
+}
+
+// using UnityEngine;
+// using System.Collections;  // <-- needed for IEnumerator
+
+// public class QB : MonoBehaviour
+// {
+//     public GameObject coinObject;        // The coin prefab
+//     public Transform coinSpawnPoint;     // Spawn position (above box)
+//     public Sprite usedBoxSprite;         // Sprite after used
+//     public AudioClip coinSound;
+//     public float bounceForce = 5f;
+
+//     public SpringJoint2D springJoint;
+//     public float springEnableTime = 0.25f;
+
+//     private bool used = false;
+//     private Rigidbody2D rb;
+//     private AudioSource audioSource;
+//     private SpriteRenderer sr;
+
+//     void Start()
+//     {
+//         rb = GetComponent<Rigidbody2D>();
+//         audioSource = GetComponent<AudioSource>();
+//         sr = GetComponent<SpriteRenderer>();
+//     }
+
+//     void OnCollisionEnter2D(Collision2D collision)
+//     {
+//         if (used) return; // Already used, do nothing
+
+
+//         if (collision.transform.position.y > transform.position.y)
+//         {
+//             rb.constraints = RigidbodyConstraints2D.FreezeAll;
+//             return;
+//         }
+//         else
+//         {
+//             rb.constraints = RigidbodyConstraints2D.None;
+//         }
+
+//         if (collision.gameObject.CompareTag("Player"))
+//         {
+//             // Check if player hit from BELOW
+//             ContactPoint2D contact = collision.contacts[0];
+//             Vector2 normal = contact.normal;
+
+//             // normal.y > 0 means the player hit from below
+//             if (normal.y > 0.5f)
+//             {
+//                 StartCoroutine(ActivateBox()); // <-- now we run it as a coroutine
+//             }
+//         }
+//     }
+
+//     IEnumerator ActivateBox()
+//     {
+//         used = true;
+
+//         // Change sprite immediately
+//         GetComponent<Animator>().enabled = false;
+//         if (sr != null && usedBoxSprite != null)
+//         {
+//             Debug.Log("Trying to swap sprite on: " + usedBoxSprite, gameObject);
+//             sr.sprite = usedBoxSprite;
+//         }
+
+//         // Spawn coin
+//             // GameObject coin = Instantiate(coinObject, coinSpawnPoint.position, Quaternion.identity);
+//             // Spawn coin at the box's current position
+//             GameObject coin = Instantiate(coinObject, transform.position, Quaternion.identity);
+
+//         Coin coinScript = coin.GetComponent<Coin>();
+//         if (coinScript != null)
+//         {
+//             coinScript.Launch(); // Animate coin
+//         }
+
+//         // Play sound
+//         if (coinSound != null)
+//             audioSource.PlayOneShot(coinSound);
+
+//         // Bounce the box
+//         rb.AddForce(Vector2.up * bounceForce, ForceMode2D.Impulse);
+
+//         // Wait to let spring bounce finish visually
+//         yield return new WaitForSeconds(springEnableTime);
+
+//         // Disable spring and freeze box
+//         if (springJoint != null) springJoint.enabled = false;
+
+//         rb.linearVelocity = Vector2.zero;
+//         rb.angularVelocity = 0f;
+//         rb.constraints = RigidbodyConstraints2D.FreezeAll;
+//     }
+// }
