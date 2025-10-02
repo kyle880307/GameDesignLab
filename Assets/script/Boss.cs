@@ -122,13 +122,13 @@ public class Boss : MonoBehaviour
     public void TakeDamage(int damage)
     {
         health -= damage;
-        if (health <= 0)
-        {
+        // if (health <= 0)
+        // {
             // Optional: add score to player
             // GameManager.Instance?.AddScore(scoreValue);
 
-            gameObject.SetActive(false); // hide instead of destroying
-        }
+            // gameObject.SetActive(false); // hide instead of destroying
+        // }
     }
 
     // ================= Reset Boss =================
