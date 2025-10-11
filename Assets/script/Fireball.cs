@@ -2,18 +2,50 @@ using UnityEngine;
 
 public class Fireball : MonoBehaviour
 {
-    public float speed = 10f;
-    public float maxDistance = 15f;
-    public int damage = 10; // damage dealt to boss or enemies
+    [Header("Game Constants")]
+    public GameConstants gameConstants;
+
+    private float speed;
+    private float maxDistance;
+    private int damage;
 
     private Vector3 startPos;
     private Vector2 direction;
-    public AudioSource fireaudio;
+    private float maxDistanceSquared; // Store squared distance for performance
 
     GameManager gameManager;
-    void Start(){
-        startPos = transform.position;
-        gameManager = GameObject.FindGameObjectWithTag("Manager").GetComponent<GameManager>();
+
+    void Awake()
+    {
+        // Initialize values from GameConstants
+        if (gameConstants != null)
+        {
+            speed = gameConstants.fireballSpeed;
+            maxDistance = gameConstants.fireballMaxDistance;
+            damage = gameConstants.fireballDamage;
+            maxDistanceSquared = maxDistance * maxDistance; // Cache squared distance
+        }
+        else
+        {
+            Debug.LogWarning("GameConstants not assigned to Fireball!");
+            // Fallback values
+            speed = 10f;
+            maxDistance = 15f;
+            damage = 10;
+            maxDistanceSquared = maxDistance * maxDistance;
+        }
+
+        var mgrObj = GameObject.FindGameObjectWithTag("Manager");
+        if (mgrObj != null)
+            gameManager = mgrObj.GetComponent<GameManager>();
+
+        // Fireballs are usually pooled as scene objects; don't DontDestroy unless intentional
+        gameObject.SetActive(false); // deactivate by default
+    }
+
+    void OnEnable()
+    {
+        startPos = transform.position; // reset starting position each time it is activated
     }
 
     public void SetDirection(bool facingRight)
@@ -25,9 +57,10 @@ public class Fireball : MonoBehaviour
     {
         transform.Translate(direction * speed * Time.deltaTime);
 
-        if (Vector3.Distance(startPos, transform.position) >= maxDistance)
+        // Use sqrMagnitude instead of Distance for better performance
+        if ((transform.position - startPos).sqrMagnitude >= maxDistanceSquared)
         {
-            Destroy(gameObject);
+            gameObject.SetActive(false); // deactivate instead of destroying
         }
     }
 
@@ -39,26 +72,25 @@ public class Fireball : MonoBehaviour
             EnemyMovement enemy = other.GetComponent<EnemyMovement>();
             if (enemy != null)
             {
-                enemy.OnHit(direction); // tells enemy to play hit animation + stun
+                enemy.OnHit(direction); // play hit animation + stun
             }
-
-            gameManager.IncreaseScore(1);
-            Destroy(gameObject);
+            Debug.Log("IncreaseScore: " + (gameConstants?.ScoreValue ?? 2));
+            gameManager.IncreaseScore(gameConstants?.ScoreValue ?? 2);
+            gameObject.SetActive(false); // deactivate
         }
-
 
         // If hit Boss
         Boss boss = other.GetComponent<Boss>();
         if (boss != null)
         {
             boss.TakeDamage(damage);
-            Destroy(gameObject);
+            gameObject.SetActive(false); // deactivate
         }
 
         // If hit Wall
         if (other.CompareTag("Obstacles"))
         {
-            Destroy(gameObject);
+            gameObject.SetActive(false); // deactivate
         }
     }
 }

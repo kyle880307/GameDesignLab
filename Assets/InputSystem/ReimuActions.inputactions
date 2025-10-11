@@ -59,6 +59,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "mouse",
+                    "type": "Button",
+                    "id": "64f7bb61-63c8-4a2d-bb29-3272ad34236a",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -79,7 +88,7 @@
                     "path": "<Keyboard>/a",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";Reimu",
                     "action": "move",
                     "isComposite": false,
                     "isPartOfComposite": true
@@ -90,7 +99,7 @@
                     "path": "<Keyboard>/d",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";Reimu",
                     "action": "move",
                     "isComposite": false,
                     "isPartOfComposite": true
@@ -101,7 +110,7 @@
                     "path": "<Keyboard>/space",
                     "interactions": "Press",
                     "processors": "",
-                    "groups": ";keyboard",
+                    "groups": "Reimu",
                     "action": "jump",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -110,9 +119,9 @@
                     "name": "",
                     "id": "fb5f21a1-d0a0-482a-996b-fabbc5596e8a",
                     "path": "<Keyboard>/space",
-                    "interactions": "Hold(duration=0.6)",
+                    "interactions": "Hold(duration=0.3)",
                     "processors": "",
-                    "groups": ";keyboard",
+                    "groups": "Reimu",
                     "action": "jumphold",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -123,7 +132,7 @@
                     "path": "<Keyboard>/j",
                     "interactions": "Press",
                     "processors": "",
-                    "groups": ";keyboard",
+                    "groups": "Reimu",
                     "action": "Attack",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -134,7 +143,7 @@
                     "path": "<Keyboard>/shift",
                     "interactions": "Press",
                     "processors": "",
-                    "groups": ";keyboard",
+                    "groups": "Reimu",
                     "action": "Dash",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -145,8 +154,19 @@
                     "path": "<Keyboard>/s",
                     "interactions": "Press",
                     "processors": "",
-                    "groups": ";keyboard",
+                    "groups": "Reimu",
                     "action": "Drop",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c566bdbb-e148-4693-9021-18212b25b0f4",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Reimu",
+                    "action": "mouse",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -155,11 +175,16 @@
     ],
     "controlSchemes": [
         {
-            "name": "keyboard",
-            "bindingGroup": "keyboard",
+            "name": "Reimu",
+            "bindingGroup": "Reimu",
             "devices": [
                 {
                     "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Mouse>",
                     "isOptional": false,
                     "isOR": false
                 }

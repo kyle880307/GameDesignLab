@@ -201,12 +201,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eddecef316397c34394dfb4093f13768, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::QnsBox
+  gameConstants: {fileID: 0}
   coinObject: {fileID: 0}
+  starmanObject: {fileID: 0}
   coinSpawnPoint: {fileID: 2350209796656341795}
   coinAudioSource: {fileID: 0}
   usedBoxSprite: {fileID: 21300060, guid: 82bc45c4496284f4c823d1b837f65ec4, type: 3}
-  bounceHeight: 1
-  bounceDuration: 0.2
 --- !u!1 &6542780753650516028
 GameObject:
   m_ObjectHideFlags: 0

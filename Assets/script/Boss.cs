@@ -1,143 +1,125 @@
-// using UnityEngine;
-
-// public class Boss : MonoBehaviour
-// {
-//     [Header("Boss Settings")]
-//     public int health = 100;
-//     public float speed = 2.0f;
-//     public Transform player;
-
-//     private GameManager gameManager;
-
-//     void Awake()
-//     {
-//         gameManager = GameObject.FindGameObjectWithTag("Manager")?.GetComponent<GameManager>();
-//     }
-
-//     void Update()
-//     {
-//         if (player != null)
-//         {
-//             transform.position = Vector2.MoveTowards(
-//                 transform.position,
-//                 player.position,
-//                 speed * Time.deltaTime
-//             );
-//         }
-//     }
-
-//     public void TakeDamage(int damage)
-//     {
-//         health -= damage;
-//         Debug.Log($"Boss took {damage} damage! Health = {health}");
-
-//         if (health <= 0)
-//         {
-//             Die();
-//         }
-//     }
-
-//     void Die()
-//     {
-//         Debug.Log("Boss defeated!");
-
-//         // Option 1: End the game immediately
-//         gameManager?.GameOver();
-
-//         // Option 2: Trigger restart automatically after a short delay
-//         // StartCoroutine(RestartAfterDelay(2f));
-
-//         Destroy(gameObject);
-//     }
-
-//     // Optional: Automatically restart after boss death
-//     private System.Collections.IEnumerator RestartAfterDelay(float delay)
-//     {
-//         yield return new WaitForSeconds(delay);
-//         gameManager?.GameRestart();
-//     }
-
-//     public void Attack()
-//     {
-//         // TODO: Trigger attack animation and deal damage to player
-//     }
-//     private void OnCollisionEnter2D(Collision2D collision)
-//     {
-//         if (collision.gameObject.CompareTag("Player"))
-//         {
-//             collision.gameObject.GetComponent<PlayerMovement>()?.Die();
-//         }
-//     }
-
-
-// }
-
 using UnityEngine;
 
 public class Boss : MonoBehaviour
 {
+    [Header("Game Constants")]
+    public GameConstants gameConstants;
+
     [Header("Boss Settings")]
-    public int health = 100;
-    public float speed = 2f;
+    private int health;
+    private float speed;
     public Transform player;
-    public int scoreValue = 10;
+    private int scoreValue;
 
     [Header("Default Position")]
-    [Tooltip("Local start position used for resets.")]
     public Vector3 startPosition = Vector3.zero;
 
     private int maxHealth;
+    private bool isGameOver = false;
+    private GameManager gameManager;
 
     private void Awake()
     {
-        // Store max health for reset
-        maxHealth = health;
+        // Initialize values from GameConstants
+        if (gameConstants != null)
+        {
+            health = gameConstants.bossHealth;
+            speed = gameConstants.bossSpeed;
+            scoreValue = gameConstants.bossScoreValue;
+        }
+        else
+        {
+            Debug.LogWarning("GameConstants not assigned to Boss!");
+            // Fallback values
+            health = 100;
+            speed = 2f;
+            scoreValue = 10;
+        }
 
-        // If startPosition not set in Inspector, use current position
+        var mgrObj = GameObject.FindGameObjectWithTag("Manager");
+        if (mgrObj != null)
+            gameManager = mgrObj.GetComponent<GameManager>();
+
+        maxHealth = health;
         if (startPosition == Vector3.zero)
             startPosition = transform.localPosition;
     }
 
+    private void Start()
+    {
+        player = GameObject.FindGameObjectWithTag("Player").transform;
+    }
+
     void Update()
     {
+        if (isGameOver) return; // ⛔ Stop moving if game over
+
         if (player != null)
         {
+            // Movement
             transform.position = Vector2.MoveTowards(
                 transform.position,
                 player.position,
                 speed * Time.deltaTime
             );
+
+            // 🔄 Flip sprite based on direction
+            if (player.position.x < transform.position.x)
+            {
+                // Face left
+                transform.localScale = new Vector3(1, 1, 1);
+            }
+            else if (player.position.x > transform.position.x)
+            {
+                // Face right
+                transform.localScale = new Vector3(-1, 1, 1);
+            }
         }
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            // Tell the player to die
-            collision.gameObject.GetComponent<PlayerMovement>()?.Die();
-        }
-    }
 
     public void TakeDamage(int damage)
     {
-        health -= damage;
-        // if (health <= 0)
-        // {
-            // Optional: add score to player
-            // GameManager.Instance?.AddScore(scoreValue);
+        if (isGameOver) return;
 
-            // gameObject.SetActive(false); // hide instead of destroying
-        // }
+        health -= damage;
+        Debug.Log($"Boss Health: {health}/{maxHealth}");
+        if (health <= 0)
+        {
+            // Optional: add score to player
+            gameManager.IncreaseScore(gameConstants?.bossScoreValue ?? 2);
+            gameObject.SetActive(false); // hide instead of destroying
+        }
     }
 
-    // ================= Reset Boss =================
     public void ResetBoss()
     {
+        Debug.Log("Boss Reset");
         health = maxHealth;
         transform.localPosition = startPosition;
-        gameObject.SetActive(true);
+        isGameOver = false;
+    }
+
+    public void StopBoss()
+    {
+        isGameOver = true;
+    }
+    
+    void OnEnable()
+    {
+        if (GameManager.instance != null)
+        {
+            GameManager.instance.gameRestart.AddListener(ResetBoss);
+            GameManager.instance.gameOver.AddListener(StopBoss);
+        }
+    }
+    
+    void OnDisable()
+    {
+        if (GameManager.instance != null)
+        {
+            GameManager.instance.gameRestart.RemoveListener(ResetBoss);
+            GameManager.instance.gameOver.RemoveListener(StopBoss);
+        }
     }
 }
-
-
