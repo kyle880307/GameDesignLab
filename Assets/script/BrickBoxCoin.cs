@@ -3,8 +3,6 @@ using System.Collections;
 
 public class BrickBoxCoin : MonoBehaviour
 {
-    [Header("Game Constants")]
-    public GameConstants gameConstants;
     public GameObject coinObject;
     public Transform coinSpawnPoint;
     public AudioSource coinAudioSource;
@@ -12,25 +10,11 @@ public class BrickBoxCoin : MonoBehaviour
     private SpriteRenderer sr;
     private Coin coinScript;
 
-    private float bounceHeight;
-    private float bounceDuration;
+    public float bounceHeight = 1f; // how high the box bounces
+    public float bounceDuration = 0.2f; // total up and down duration
 
     void Start()
     {
-        // Initialize values from GameConstants
-        if (gameConstants != null)
-        {
-            bounceHeight = gameConstants.boxBounceHeight;
-            bounceDuration = gameConstants.boxBounceDuration;
-        }
-        else
-        {
-            Debug.LogWarning("GameConstants not assigned to QnsBox!");
-            // Fallback values
-            bounceHeight = 1f;
-            bounceDuration = 0.2f;
-        }
-
         sr = GetComponent<SpriteRenderer>();
         if (sr != null)
         {

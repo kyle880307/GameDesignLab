@@ -1,53 +1,36 @@
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.SceneManagement;
 
-public class PlayerMovement : Singleton<PlayerMovement>
+public class PlayerMovement : MonoBehaviour
 {
-    [Header("Game Constants")]
-    public GameConstants gameConstants;
-
     [Header("Movement")]
-    private float speed;
-    private float maxSpeed;
+    public float speed = 15f;
+    public float maxSpeed = 60f;
     private float moveInput;
     private bool facingRight = true;
 
     [Header("Jump")]
-    private float jumpForce;
-    private float holdJumpForce;
+    public float jumpForce = 15f;
+    public float holdJumpForce = 50f;
     private bool onGround = true;
 
     [Header("Dash")]
-    private float dashSpeed;
-    private float dashTime;
-    private float dashCooldown;
+    public float dashSpeed = 30f;
+    public float dashTime = 0.1f;
+    public float dashCooldown = 1f;
     private bool isDashing = false;
     private float dashTimeLeft;
     private float lastDash = -10f;
 
     [Header("Drop")]
-    private float dropSpeed;
+    public float dropSpeed = 40f;
     private bool isDropping = false;
 
     [Header("Attack")]
-    public GameObject fireball; // drag the fireball in Inspector
+    public GameObject fireballPrefab;
     public Transform fireballSpawnPoint;
-    private bool fireballActive => fireball.activeInHierarchy;
-
-    // Cached components for performance
-    private Fireball fireballScript;
-    private AudioSource fireballAudio;
-
-    [Header("Special Skill")]
-    public GameObject specialSkill; // drag the special skill prefab in Inspector
-    public Transform specialSkillSpawnPoint; // can use same as fireball or different
-    private bool specialSkillUnlocked = false; // starts locked
-    private bool specialSkillActive => specialSkill != null && specialSkill.activeInHierarchy;
-
-    // Cached components for performance
-    private SpecialSkillAttack specialSkillScript;
-    private AudioSource specialSkillAudio;
+    public float attackCooldown = 0.5f;
+    private float lastAttackTime = -10f;
 
     [Header("References")]
     public Rigidbody2D body;
@@ -59,115 +42,50 @@ public class PlayerMovement : Singleton<PlayerMovement>
     public Transform gameCamera;
 
     [Header("Gameplay")]
-    
-    // Invincibility system for starman
-    private bool isInvincible = false;
-    private float invincibilityTimer = 0f;
-    private float blinkTimer = 0f;
-    private const float BLINK_INTERVAL = 0.1f;
+    public GameObject enemies;
 
     private int groundContacts = 0;
+    private bool alive = true;
     private ActionManager actionManager;
     private GameManager gameManager;
-    private bool isGameOver = false;
 
-    // Cached arrays for performance - avoid FindObjectsOfType in GameRestart
-    private QnsBox[] qnsBoxes;
-    private BrickBoxCoin[] brickBoxes;
-    private PowerUpBox[] powerUpBoxes;
+    [Header("Death")]
+    public float deathImpulse = 15f;
 
-    private void Start()
+    public bool IsAlive => alive;  // Expose alive status to boss
+    public Boss boss;
+
+    private void Awake()
     {
-        // Initialize values from GameConstants
-        if (gameConstants != null)
-        {
-            speed = gameConstants.speed;
-            maxSpeed = gameConstants.maxSpeed;
-            jumpForce = gameConstants.jumpForce;
-            holdJumpForce = gameConstants.holdJumpForce;
-            dashSpeed = gameConstants.dashSpeed;
-            dashTime = gameConstants.dashTime;
-            dashCooldown = gameConstants.dashCooldown;
-            dropSpeed = gameConstants.dropSpeed;
-        }
-        else
-        {
-            Debug.LogWarning("GameConstants not assigned to PlayerMovement!");
-        }
-
         gameManager = FindObjectOfType<GameManager>();
-        SceneManager.activeSceneChanged += SetStartingPosition;
+        actionManager = FindObjectOfType<ActionManager>();
 
-        // Cache component references for performance
-        CacheComponentReferences();
-
-        // Initialize special skill as inactive
-        if (specialSkill != null)
+        if (actionManager != null)
         {
-            specialSkill.SetActive(false);
-            specialSkillUnlocked = false;
-        }
-    }
-
-    private void CacheComponentReferences()
-    {
-        // Cache fireball components
-        if (fireball != null)
-        {
-            fireballScript = fireball.GetComponent<Fireball>();
-            fireballAudio = fireball.GetComponent<AudioSource>();
+            actionManager.jump.AddListener(OnJump);
+            actionManager.jumpHold.AddListener(OnJumpHold);
+            actionManager.moveCheck.AddListener(OnMove);
+            actionManager.attack.AddListener(OnAttack);
+            actionManager.dash.AddListener(OnDash);
+            actionManager.drop.AddListener(OnDrop);
         }
 
-        // Cache special skill components
-        if (specialSkill != null)
-        {
-            specialSkillScript = specialSkill.GetComponent<SpecialSkillAttack>();
-            specialSkillAudio = specialSkill.GetComponent<AudioSource>();
-        }
-
-        // Cache box arrays for GameRestart performance
-        CacheBoxReferences();
-    }
-
-    private void CacheBoxReferences()
-    {
-        qnsBoxes = FindObjectsOfType<QnsBox>();
-        brickBoxes = FindObjectsOfType<BrickBoxCoin>();
-        powerUpBoxes = FindObjectsOfType<PowerUpBox>();
-    }
-
-    public void SetStartingPosition(Scene current, Scene next)
-    {
-        if (gameConstants == null) return;
-        
-        if (next.name == "Lab4_2")
-        {
-            body.transform.position = gameConstants.lab4_2StartingPosition;
-        }
-        else if (next.name == "Lab4")
-        {
-            body.transform.position = gameConstants.lab4StartingPosition;
-        }
+        if (!body) Debug.LogWarning("Missing Rigidbody2D.");
+        if (!animator) Debug.LogWarning("Missing Animator.");
+        if (!sprite) Debug.LogWarning("Missing SpriteRenderer.");
+        if (!boxCollider) Debug.LogWarning("Missing BoxCollider2D.");
     }
 
     private void Update()
     {
-        if (isGameOver) return;
+        if (!alive) return;
         HandleDashUpdate();
-        HandleInvincibility();
         UpdateAnimator();
-
-        // Handle special skill input (K key)
-        if (Input.GetKeyDown(KeyCode.K))
-        {
-            Debug.Log("K key pressed");
-            OnSpecialSkill();
-        }
     }
 
     private void FixedUpdate()
     {
-        if (isGameOver) return;
+        if (!alive) return;
 
         if (isDashing)
         {
@@ -220,56 +138,13 @@ public class PlayerMovement : Singleton<PlayerMovement>
 
     public void OnAttack()
     {
-        if (fireballActive) return; // only allow one at a time
-
-        fireball.transform.position = fireballSpawnPoint.position;
-        fireball.SetActive(true);
-        
-        // Use cached components instead of GetComponent calls
-        if (fireballScript != null)
-            fireballScript.SetDirection(facingRight);
-        
-        if (fireballAudio != null)
-            fireballAudio.Play();
-
+        if (Time.time < lastAttackTime + attackCooldown) return;
+        lastAttackTime = Time.time;
         animator.SetBool("onAttack", true);
-    }
 
-    public void OnSpecialSkill()
-    {
-        if (!specialSkillUnlocked || specialSkill == null) return;
-        if (specialSkillActive) return; // only allow one at a time
-
-        // Use same spawn point as fireball or different one if assigned
-        Transform spawnPoint = specialSkillSpawnPoint != null ? specialSkillSpawnPoint : fireballSpawnPoint;
-        
-        specialSkill.transform.position = spawnPoint.position;
-        specialSkill.SetActive(true);
-        
-        // Use cached components instead of GetComponent calls
-        if (specialSkillScript != null)
-        {
-            specialSkillScript.SetDirection(facingRight);
-        }
-
-        // Play sound if available
-        if (specialSkillAudio != null)
-            specialSkillAudio.Play();
-
-        // Trigger animation (you'll set this up in the animator)
-        animator.SetBool("onSpecialAttack", true);
-        
-        Debug.Log("Special Skill Activated!");
-    }
-
-    // Method to unlock skills (called by PowerUpBox)
-    public void UnlockSkill(string skillName)
-    {
-        if (skillName == "SpecialAttack")
-        {
-            specialSkillUnlocked = true;
-            Debug.Log("Special Attack Unlocked! Press K to use it.");
-        }
+        var fireball = Instantiate(fireballPrefab, fireballSpawnPoint.position, Quaternion.identity);
+        fireball.GetComponent<Fireball>().SetDirection(facingRight);
+        fireball.GetComponent<AudioSource>().Play();
     }
 
     // ================= Dash =================
@@ -293,111 +168,63 @@ public class PlayerMovement : Singleton<PlayerMovement>
         animator.SetBool("onDash", false);
     }
 
-    // ================= Invincibility System =================
-    public void StartInvincibility(float duration)
-    {
-        isInvincible = true;
-        invincibilityTimer = duration;
-        blinkTimer = 0f;
-        Debug.Log($"Player is now invincible for {duration} seconds!");
-    }
-
-    private void HandleInvincibility()
-    {
-        if (!isInvincible) return;
-
-        // Count down invincibility timer
-        invincibilityTimer -= Time.deltaTime;
-        if (invincibilityTimer <= 0)
-        {
-            EndInvincibility();
-            return;
-        }
-
-        // Handle blinking effect
-        blinkTimer += Time.deltaTime;
-        if (blinkTimer >= BLINK_INTERVAL)
-        {
-            blinkTimer = 0f;
-            sprite.color = sprite.color.a > 0.5f ? new Color(1, 1, 1, 0.3f) : Color.white;
-        }
-    }
-
-    private void EndInvincibility()
-    {
-        isInvincible = false;
-        invincibilityTimer = 0f;
-        sprite.color = Color.white; // Restore normal color
-        Debug.Log("Player invincibility ended!");
-    }
-
-    public bool IsInvincible()
-    {
-        return isInvincible;
-    }
-
     // ================= Death =================
     public void Die()
     {
-        // Don't die if invincible
-        if (isInvincible) return;
+        if (!alive) return;
 
+        alive = false;
         StopDash();
-        isGameOver = true;
-        if (body != null) body.linearVelocity = Vector2.zero;
-        marioDeath.Play();
+        body.linearVelocity = Vector2.zero;
         animator.Play("ReimuHitAir");
+        // animator.SetBool("onDie", true);
+        marioDeath.Play();
     }
 
     // Called at the end of the death animation
     public void OnDeathAnimationEnd()
     {
-        gameManager.GameOver();
+        gameManager?.GameOver();
     }
 
     private void PlayDeathImpulse()
     {
-        float deathForce = gameConstants != null ? gameConstants.deathImpulse : 15f;
-        body.AddForce(Vector2.up * deathForce, ForceMode2D.Impulse);
+        body.AddForce(Vector2.up * deathImpulse, ForceMode2D.Impulse);
     }
 
 
-    public void GameRestart()
+    public void RestartButtonCallback(int input)
     {
-        SetStartingPosition(SceneManager.GetActiveScene(), SceneManager.GetActiveScene());
-        if (body != null) body.linearVelocity = Vector2.zero;
+        gameManager?.GameRestart();
+        ResetGame();
+    }
+
+    private void ResetGame()
+    {
+        if (body) body.transform.position = new Vector3(0f, -3.662f, 0f);
+        body.linearVelocity = Vector2.zero;
         moveInput = 0f;
         isDropping = false;
-        isGameOver = false;
+        // animator.SetBool("onDie", false);
         StopDash();
         Flip(true);
 
-        // Reset skill unlock status
-        specialSkillUnlocked = false;
-        if (specialSkill != null)
-            specialSkill.SetActive(false);
+        if (enemies)
+        {
+            foreach (Transform enemy in enemies.transform)
+                enemy.GetComponent<EnemyMovement>()?.ResetEnemy();
+        }
+        if (boss != null)
+        {
+            boss.ResetBoss();
+        }
 
-        // Use cached arrays instead of FindObjectsOfType
-        if (qnsBoxes != null)
-            foreach (QnsBox box in qnsBoxes) 
-                if (box != null) box.ResetBox();
-        
-        if (brickBoxes != null)
-            foreach (BrickBoxCoin box in brickBoxes) 
-                if (box != null) box.ResetBox();
-        
-        if (powerUpBoxes != null)
-            foreach (PowerUpBox powerBox in powerUpBoxes) 
-                if (powerBox != null) powerBox.ResetBox();
+        foreach (QnsBox box in FindObjectsOfType<QnsBox>()) box.ResetBox();
+        foreach (BrickBoxCoin box in FindObjectsOfType<BrickBoxCoin>()) box.ResetBox();
 
-        animator.SetTrigger("gameRestart");
-        
-        // Cache camera reference instead of finding it every time
-        if (gameCamera == null)
-            gameCamera = GameObject.FindGameObjectWithTag("MainCamera")?.transform;
-        
-        if (gameCamera) 
-            gameCamera.position = body.transform.position + new Vector3(0, 0, gameCamera.position.z);
+        animator?.SetTrigger("gameRestart");
+        alive = true;
+        if (gameCamera) gameCamera.position = new Vector3(0, 0, -10);
     }
 
     // ================= Helpers =================
@@ -413,11 +240,8 @@ public class PlayerMovement : Singleton<PlayerMovement>
 
     private void UpdateAnimator()
     {
-        if (body != null)
-        {
-            animator.SetFloat("xSpeed", Mathf.Abs(body.linearVelocity.x));
-            animator.SetFloat("ySpeed", body.linearVelocity.y);
-        }
+        animator.SetFloat("xSpeed", Mathf.Abs(body.linearVelocity.x));
+        animator.SetFloat("ySpeed", body.linearVelocity.y);
         animator.SetBool("onGround", onGround);
     }
 
@@ -433,38 +257,6 @@ public class PlayerMovement : Singleton<PlayerMovement>
 
     private void OnCollisionEnter2D(Collision2D col)
     {
-        if (col.gameObject.CompareTag("Boss") && !isGameOver && !isInvincible)
-        {
-            Debug.Log("Hit by Boss");
-            Die();
-        }
-
-        // Handle enemy collisions with invincibility
-        if (col.gameObject.CompareTag("Enemies") && !isGameOver)
-        {
-            if (isInvincible)
-            {
-                // If invincible, destroy the enemy instead
-                EnemyMovement enemy = col.gameObject.GetComponent<EnemyMovement>();
-                if (enemy != null)
-                {
-                    // Give points for defeating enemy
-                    if (gameManager != null)
-                        gameManager.IncreaseScore(gameConstants?.ScoreValue ?? 2);
-                    
-                    // Destroy or disable enemy
-                    col.gameObject.SetActive(false);
-                    Debug.Log("Enemy defeated by invincible player!");
-                }
-            }
-            else
-            {
-                // If not invincible, take damage
-                Debug.Log("Hit by Enemy");
-                Die();
-            }
-        }
-
         if (!IsGroundCollision(col)) return;
         groundContacts++;
         SetGrounded(true);
@@ -477,8 +269,14 @@ public class PlayerMovement : Singleton<PlayerMovement>
         if (groundContacts <= 0) SetGrounded(false);
     }
 
+    private void OnTriggerEnter2D(Collider2D col)
+    {
+        if (col.CompareTag("Boss") && alive)
+        {
+            Die();
+        }
+    }
+
     public void PlayJumpSound() => marioAudio.Play();
     public void EndAttack() => animator.SetBool("onAttack", false);
-    public void EndSpecialAttack() => animator.SetBool("onSpecialAttack", false);
-
 }

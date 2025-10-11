@@ -145,15 +145,6 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""mouse"",
-                    ""type"": ""Button"",
-                    ""id"": ""64f7bb61-63c8-4a2d-bb29-3272ad34236a"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -174,7 +165,7 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
                     ""path"": ""<Keyboard>/a"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Reimu"",
+                    ""groups"": """",
                     ""action"": ""move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -185,7 +176,7 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
                     ""path"": ""<Keyboard>/d"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Reimu"",
+                    ""groups"": """",
                     ""action"": ""move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -196,7 +187,7 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
                     ""path"": ""<Keyboard>/space"",
                     ""interactions"": ""Press"",
                     ""processors"": """",
-                    ""groups"": ""Reimu"",
+                    ""groups"": "";keyboard"",
                     ""action"": ""jump"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -205,9 +196,9 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
                     ""name"": """",
                     ""id"": ""fb5f21a1-d0a0-482a-996b-fabbc5596e8a"",
                     ""path"": ""<Keyboard>/space"",
-                    ""interactions"": ""Hold(duration=0.3)"",
+                    ""interactions"": ""Hold(duration=0.6)"",
                     ""processors"": """",
-                    ""groups"": ""Reimu"",
+                    ""groups"": "";keyboard"",
                     ""action"": ""jumphold"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -218,7 +209,7 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
                     ""path"": ""<Keyboard>/j"",
                     ""interactions"": ""Press"",
                     ""processors"": """",
-                    ""groups"": ""Reimu"",
+                    ""groups"": "";keyboard"",
                     ""action"": ""Attack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -229,7 +220,7 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
                     ""path"": ""<Keyboard>/shift"",
                     ""interactions"": ""Press"",
                     ""processors"": """",
-                    ""groups"": ""Reimu"",
+                    ""groups"": "";keyboard"",
                     ""action"": ""Dash"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -240,19 +231,8 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
                     ""path"": ""<Keyboard>/s"",
                     ""interactions"": ""Press"",
                     ""processors"": """",
-                    ""groups"": ""Reimu"",
+                    ""groups"": "";keyboard"",
                     ""action"": ""Drop"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""c566bdbb-e148-4693-9021-18212b25b0f4"",
-                    ""path"": ""<Mouse>/leftButton"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Reimu"",
-                    ""action"": ""mouse"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -261,16 +241,11 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
     ],
     ""controlSchemes"": [
         {
-            ""name"": ""Reimu"",
-            ""bindingGroup"": ""Reimu"",
+            ""name"": ""keyboard"",
+            ""bindingGroup"": ""keyboard"",
             ""devices"": [
                 {
                     ""devicePath"": ""<Keyboard>"",
-                    ""isOptional"": false,
-                    ""isOR"": false
-                },
-                {
-                    ""devicePath"": ""<Mouse>"",
                     ""isOptional"": false,
                     ""isOR"": false
                 }
@@ -286,7 +261,6 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
         m_gameplay_Attack = m_gameplay.FindAction("Attack", throwIfNotFound: true);
         m_gameplay_Dash = m_gameplay.FindAction("Dash", throwIfNotFound: true);
         m_gameplay_Drop = m_gameplay.FindAction("Drop", throwIfNotFound: true);
-        m_gameplay_mouse = m_gameplay.FindAction("mouse", throwIfNotFound: true);
     }
 
     ~@ReimuActions()
@@ -373,7 +347,6 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_gameplay_Attack;
     private readonly InputAction m_gameplay_Dash;
     private readonly InputAction m_gameplay_Drop;
-    private readonly InputAction m_gameplay_mouse;
     /// <summary>
     /// Provides access to input actions defined in input action map "gameplay".
     /// </summary>
@@ -409,10 +382,6 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "gameplay/Drop".
         /// </summary>
         public InputAction @Drop => m_Wrapper.m_gameplay_Drop;
-        /// <summary>
-        /// Provides access to the underlying input action "gameplay/mouse".
-        /// </summary>
-        public InputAction @mouse => m_Wrapper.m_gameplay_mouse;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -457,9 +426,6 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
             @Drop.started += instance.OnDrop;
             @Drop.performed += instance.OnDrop;
             @Drop.canceled += instance.OnDrop;
-            @mouse.started += instance.OnMouse;
-            @mouse.performed += instance.OnMouse;
-            @mouse.canceled += instance.OnMouse;
         }
 
         /// <summary>
@@ -489,9 +455,6 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
             @Drop.started -= instance.OnDrop;
             @Drop.performed -= instance.OnDrop;
             @Drop.canceled -= instance.OnDrop;
-            @mouse.started -= instance.OnMouse;
-            @mouse.performed -= instance.OnMouse;
-            @mouse.canceled -= instance.OnMouse;
         }
 
         /// <summary>
@@ -525,17 +488,17 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
     /// Provides a new <see cref="GameplayActions" /> instance referencing this action map.
     /// </summary>
     public GameplayActions @gameplay => new GameplayActions(this);
-    private int m_ReimuSchemeIndex = -1;
+    private int m_keyboardSchemeIndex = -1;
     /// <summary>
     /// Provides access to the input control scheme.
     /// </summary>
     /// <seealso cref="UnityEngine.InputSystem.InputControlScheme" />
-    public InputControlScheme ReimuScheme
+    public InputControlScheme keyboardScheme
     {
         get
         {
-            if (m_ReimuSchemeIndex == -1) m_ReimuSchemeIndex = asset.FindControlSchemeIndex("Reimu");
-            return asset.controlSchemes[m_ReimuSchemeIndex];
+            if (m_keyboardSchemeIndex == -1) m_keyboardSchemeIndex = asset.FindControlSchemeIndex("keyboard");
+            return asset.controlSchemes[m_keyboardSchemeIndex];
         }
     }
     /// <summary>
@@ -587,12 +550,5 @@ public partial class @ReimuActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnDrop(InputAction.CallbackContext context);
-        /// <summary>
-        /// Method invoked when associated input action "mouse" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-        /// </summary>
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnMouse(InputAction.CallbackContext context);
     }
 }

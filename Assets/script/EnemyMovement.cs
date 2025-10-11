@@ -3,47 +3,35 @@ using System.Collections;
 
 public class EnemyMovement : MonoBehaviour
 {
-    [Header("Game Constants")]
-    public GameConstants gameConstants;
-
     [Header("Patrol Settings")]
-    [SerializeField] private int moveRight = -1;
+    [SerializeField] private float maxOffset = 5.0f;
+    [SerializeField] private float enemyPatrolTime = 2.0f;
+    [SerializeField] private int moveRight = -1; // -1 = left, 1 = right
+    [SerializeField] private int scoreValue = 1;
+    [SerializeField] private float hitStunTime = 0.3f; // how long enemy is stunned after being hit
 
+    [Tooltip("Local start position used for resets.")]
     public Vector3 startPosition = Vector3.zero;
 
-    private float maxOffset;
-    private float enemyPatrolTime;
-    private float hitStunTime;
     private float originalX;
     private int initialDirection;
     private Vector2 velocity;
     private Rigidbody2D enemyBody;
+    private EnemyEvents enemyEvents;
     private Animator animator;
 
     private bool isStunned = false;
-    private bool isGameOver = false; // ⛔ new flag
-    private int patrolDirection;
-    
+    private int patrolDirection; // remembers current patrol direction
+
+    void Awake()
+    {
+        enemyBody = GetComponent<Rigidbody2D>();
+        enemyEvents = GetComponent<EnemyEvents>() ?? gameObject.AddComponent<EnemyEvents>();
+        animator = GetComponent<Animator>();
+    }
+
     void Start()
     {
-        // Initialize values from GameConstants
-        if (gameConstants != null)
-        {
-            maxOffset = gameConstants.enemyMaxOffset;
-            enemyPatrolTime = gameConstants.enemyPatrolTime;
-            hitStunTime = gameConstants.enemyHitStunTime;
-        }
-        else
-        {
-            Debug.LogWarning("GameConstants not assigned to EnemyMovement!");
-            // Fallback values
-            maxOffset = 5.0f;
-            enemyPatrolTime = 2.0f;
-            hitStunTime = 0.3f;
-        }
-
-        enemyBody = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
         if (startPosition == Vector3.zero)
             startPosition = transform.localPosition;
 
@@ -51,13 +39,7 @@ public class EnemyMovement : MonoBehaviour
         initialDirection = moveRight;
         patrolDirection = moveRight;
         ComputeVelocity();
-        UpdateFacing(moveRight);
-    }
-    void UpdateFacing(int direction)
-    {
-        Vector3 scale = transform.localScale;
-        scale.x = Mathf.Abs(scale.x) * direction;
-        transform.localScale = scale;
+        UpdateFacing(moveRight); // Ensure correct facing at start
     }
 
     void ComputeVelocity()
@@ -70,9 +52,9 @@ public class EnemyMovement : MonoBehaviour
         enemyBody.MovePosition(enemyBody.position + velocity * Time.fixedDeltaTime);
     }
 
-    void Update()
+    void FixedUpdate()
     {
-        if (isGameOver || isStunned) return; 
+        if (isStunned) return; // Don't move while stunned
 
         if (Mathf.Abs(enemyBody.position.x - originalX) < maxOffset)
         {
@@ -80,7 +62,6 @@ public class EnemyMovement : MonoBehaviour
         }
         else
         {
-            // Change direction and move
             moveRight *= -1;
             patrolDirection = moveRight;
             ComputeVelocity();
@@ -89,8 +70,22 @@ public class EnemyMovement : MonoBehaviour
         }
     }
 
+    void UpdateFacing(int dir)
+    {
+        Vector3 scale = transform.localScale;
+        scale.x = Mathf.Abs(scale.x) * (dir > 0 ? 1 : -1);
+        transform.localScale = scale;
+    }
+
+    public void Kill()
+    {
+        enemyEvents?.KillEnemy(scoreValue);
+        gameObject.SetActive(false);
+    }
+
     public void ResetEnemy()
     {
+        gameObject.SetActive(true);
         transform.localPosition = startPosition;
         originalX = transform.position.x;
         moveRight = initialDirection;
@@ -98,32 +93,8 @@ public class EnemyMovement : MonoBehaviour
         ComputeVelocity();
         UpdateFacing(moveRight);
         isStunned = false;
-        isGameOver = false;
     }
 
-    public void StopEnemy()
-    {
-        isGameOver = true;
-    }
-
-    void OnEnable()
-    {
-        if (GameManager.instance != null)
-        {
-            GameManager.instance.gameRestart.AddListener(ResetEnemy);
-            GameManager.instance.gameOver.AddListener(StopEnemy);
-        }
-    }
-
-    void OnDisable()
-    {
-        if (GameManager.instance != null)
-        {
-            GameManager.instance.gameRestart.RemoveListener(ResetEnemy);
-            GameManager.instance.gameOver.RemoveListener(StopEnemy);
-        }
-    }
-    
     // Called when hit by fireball, pass in hit direction
     public void OnHit(Vector2 hitDirection)
     {
@@ -139,7 +110,8 @@ public class EnemyMovement : MonoBehaviour
         int hitDir = (hitDirection.x > 0) ? -1 : 1;
         UpdateFacing(hitDir);
 
-        animator.SetTrigger("onHit");
+        if (animator != null)
+            animator.SetTrigger("onHit");
 
         yield return new WaitForSeconds(hitStunTime);
 

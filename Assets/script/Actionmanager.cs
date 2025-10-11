@@ -31,15 +31,9 @@ public class ActionManager : MonoBehaviour
 
     public void OnMoveAction(InputAction.CallbackContext context)
     {
-        if (context.started)
-        {
-            int faceRight = context.ReadValue<float>() > 0 ? 1 : -1;
-            moveCheck.Invoke(faceRight);
-        }
-        if (context.canceled)
-        {
-            moveCheck.Invoke(0);
-        }
+        float move = context.ReadValue<float>();
+        if (context.performed || context.canceled)
+            moveCheck.Invoke(move);
     }
 
     public void OnAttackAction(InputAction.CallbackContext context)
