@@ -9,6 +9,9 @@ public class GameManager : Singleton<GameManager>
     [Header("Game Constants")]
     public GameConstants gameConstants;
 
+    [Header("Audio")]
+    public AudioSource audioSource;
+
     // events
     public UnityEvent gameStart;
     public UnityEvent gameRestart;
@@ -74,6 +77,12 @@ public class GameManager : Singleton<GameManager>
             scoreLimitLab4 = 30; // Fallback value
         }
 
+        // Play audio when game starts
+        if (audioSource != null)
+        {
+            audioSource.Play();
+        }
+
         gameStart.Invoke();
         gameScore.Value = 0;
         Time.timeScale = 1.0f;
@@ -87,6 +96,10 @@ public class GameManager : Singleton<GameManager>
 
     public void GameRestart()
     {
+        if (audioSource != null)
+        {
+            audioSource.Play();
+        }
         // reset score
         gameScore.Value = 0;
         scoreChange.Invoke(gameScore.Value);
@@ -96,11 +109,20 @@ public class GameManager : Singleton<GameManager>
 
     public void GamePause()
     {
+        if (audioSource != null)
+        {
+            audioSource.Stop();
+        }
         Time.timeScale = 0.0f;
         gamePause.Invoke();
     }
     public void GameResume()
     {
+        // Play audio when game starts
+        if (audioSource != null)
+        {
+            audioSource.Play();
+        }
         Time.timeScale = 1.0f;
         gameResume.Invoke();
     }
@@ -136,6 +158,12 @@ public class GameManager : Singleton<GameManager>
 
     public void GameOver()
     {
+        // Stop audio when game is over
+        if (audioSource != null)
+        {
+            audioSource.Stop();
+        }
+
         Time.timeScale = 0.0f;
         gameOver.Invoke();
     }

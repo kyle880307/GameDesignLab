@@ -15,8 +15,8 @@ MonoBehaviour:
   maxLives: 0
   speed: 20
   maxSpeed: 30
-  jumpForce: 20
-  holdJumpForce: 20
+  jumpForce: 5
+  holdJumpForce: 50
   deathImpulse: 0
   dashSpeed: 30
   dashTime: 0.3
