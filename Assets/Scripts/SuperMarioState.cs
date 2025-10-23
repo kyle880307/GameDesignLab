@@ -13,6 +13,6 @@ public class SuperMarioState : State
     }
     public override void OnDamage(StateController controller)
     {
-        controller.TransitionToBodyState(controller.smallMarioState);
+        controller.TransitionToBodyState(controller.invincibleSmallMarioState);
     }
 }

@@ -1,16 +1,10 @@
 using UnityEngine;
 
-public abstract class State : ScriptableObject
+public abstract class BuffState : ScriptableObject
 {
-    public AudioClip stateAudio;
-    public Color stateColor;
+    public abstract void Tick(BuffStateController controller);
 
-    public abstract void Tick(StateController controller);
-
-    public virtual void OnPowerup(StateController controller) { }
-    public virtual void OnDamage(StateController controller) { }
-    public virtual void OnExit(StateController controller) { }
-    public virtual void OnEnter(StateController controller)
+    public virtual void OnEnter(BuffStateController controller)
     {
         if (stateAudio != null)
         {
@@ -28,4 +22,6 @@ public abstract class State : ScriptableObject
             sprite.color = stateColor;
         }
     }
+    public virtual void OnExit(BuffStateController controller) { }
+    public virtual void OnTimerEnd(BuffStateController controller) { }
 }
