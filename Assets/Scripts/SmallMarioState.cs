@@ -15,8 +15,4 @@ public class SmallMarioState : State
     {
         controller.TransitionToBodyState(controller.deadMarioState);
     }
-    public override void OnStar(StateController controller)
-    {
-        controller.TransitionToBodyState(controller.invincibleSmallMarioState);
-    }
 }
